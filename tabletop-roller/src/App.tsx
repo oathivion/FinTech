@@ -31,7 +31,27 @@ import { parseSheetText, type CharacterPatch, type SheetParseResult } from "./sh
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 type AbilityKey = "strength" | "dexterity" | "constitution" | "intelligence" | "wisdom" | "charisma";
-type SkillKey = "acrobatics" | "animalHandling" | "arcana" | "athletics" | "deception" | "history" | "insight" | "intimidation" | "investigation" | "medicine" | "nature" | "perception" | "performance" | "persuasion" | "religion" | "sleightOfHand" | "stealth" | "survival";
+
+type SkillKey =
+  | "acrobatics"
+  | "animalHandling"
+  | "arcana"
+  | "athletics"
+  | "deception"
+  | "history"
+  | "insight"
+  | "intimidation"
+  | "investigation"
+  | "medicine"
+  | "nature"
+  | "perception"
+  | "performance"
+  | "persuasion"
+  | "religion"
+  | "sleightOfHand"
+  | "stealth"
+  | "survival";
+
 type Ruleset = "dnd5e2024" | "pf2eRemaster";
 type AbilityScores = Record<AbilityKey, number>;
 type SkillProficiencies = Record<SkillKey, boolean>;
@@ -81,7 +101,10 @@ type Character = {
   spells: Spell[];
 };
 
-type RollBreakdownLine = { label: string; value: number };
+type RollBreakdownLine = {
+  label: string;
+  value: number;
+};
 
 type RollResult = {
   id: string;
@@ -242,10 +265,14 @@ const sampleCharacter: Character = {
 function normalizeCharacter(input: Partial<Character> | { character?: Partial<Character> } | null): Character {
   let safeSource: Partial<Character> = {};
 
-  if (input && "character" in input) {
-    safeSource = input.character ?? {};
-  } else if (input) {
-    safeSource == input;
+  if (input && typeof input === "object") {
+    const maybeWrapped = input as { character?: Partial<Character> };
+
+    if (maybeWrapped.character && typeof maybeWrapped.character === "object") {
+      safeSource = maybeWrapped.character;
+    } else {
+      safeSource = input as Partial<Character>;
+    }
   }
 
   return {
@@ -335,9 +362,7 @@ function parseDiceNotation(notation: string) {
   const compact = notation.toLowerCase().replaceAll(" ", "");
   const dIndex = compact.indexOf("d");
 
-  if (dIndex < 0) {
-    return { count: 1, sides: 20, flatBonus: 0 };
-  }
+  if (dIndex < 0) return { count: 1, sides: 20, flatBonus: 0 };
 
   const countText = compact.slice(0, dIndex);
   const afterD = compact.slice(dIndex + 1);
@@ -346,7 +371,6 @@ function parseDiceNotation(notation: string) {
   const bonusIndex = plusIndex >= 0 ? plusIndex : minusIndex;
   const sidesText = bonusIndex >= 0 ? afterD.slice(0, bonusIndex) : afterD;
   const bonusText = bonusIndex >= 0 ? afterD.slice(bonusIndex) : "0";
-
   const count = countText === "" ? 1 : Number(countText);
   const sides = Number(sidesText);
   const flatBonus = Number(bonusText);
@@ -474,7 +498,9 @@ function SectionTitle({
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h2 className="whitespace-nowrap font-serif text-base font-black uppercase tracking-wider text-emerald-950">{title}</h2>
+          <h2 className="whitespace-nowrap font-serif text-base font-black uppercase tracking-wider text-emerald-950">
+            {title}
+          </h2>
           <div className="h-[3px] flex-1 bg-emerald-950" />
         </div>
         {subtitle ? <p className="text-[11px] font-bold uppercase tracking-wide text-stone-500">{subtitle}</p> : null}
@@ -483,7 +509,7 @@ function SectionTitle({
   );
 }
 
-function SheetField({ label, value }: { label: string; value: string | number }) {
+function SheetField({ label, value }: { label: string | number; value: string | number }) {
   return (
     <div className="min-w-0 overflow-hidden border-2 border-stone-500 bg-stone-50 p-2 text-center shadow-[inset_0_0_0_1px_rgba(255,255,255,0.8)]">
       <div className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-stone-500">{label}</div>
@@ -500,7 +526,10 @@ function ProficiencyDot({ active }: { active: boolean }) {
 function SheetCss() {
   return (
     <style>{`
-      body { background: rgb(245 245 244); }
+      body {
+        background: rgb(245 245 244);
+      }
+
       .sheet-bg {
         background-image:
           radial-gradient(circle at top left, rgba(68, 64, 60, 0.16), transparent 30rem),
@@ -508,13 +537,29 @@ function SheetCss() {
           linear-gradient(90deg, rgba(68, 64, 60, 0.045) 1px, transparent 1px);
         background-size: auto, 18px 18px, 18px 18px;
       }
+
       .sheet-card {
         background: rgba(255, 252, 242, 0.96) !important;
         box-shadow: 0 12px 30px rgba(41, 37, 36, 0.08), inset 0 0 0 1px rgba(255,255,255,0.75) !important;
       }
-      .sheet-card input, .sheet-card select { border-radius: 0 !important; }
-      .sheet-card button { border-radius: 0 !important; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 900; }
-      .sheet-lines { background-image: linear-gradient(rgba(87,83,78,.20) 1px, transparent 1px); background-size: 100% 28px; }
+
+      .sheet-card input,
+      .sheet-card select {
+        border-radius: 0 !important;
+      }
+
+      .sheet-card button {
+        border-radius: 0 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 0.72rem;
+        font-weight: 900;
+      }
+
+      .sheet-lines {
+        background-image: linear-gradient(rgba(87,83,78,.20) 1px, transparent 1px);
+        background-size: 100% 28px;
+      }
     `}</style>
   );
 }
@@ -553,6 +598,12 @@ export default function TabletopCharacterRollerApp() {
   const spellSaveDc = getSpellSaveDc(character);
   const spellAttackBonus = getSpellAttackBonus(character);
   const proficiencyValue = character.ruleset === "pf2eRemaster" ? character.level + 2 : character.proficiencyBonus;
+
+  const nonZeroModifierLines = activeRoll
+    ? activeRoll.breakdown
+        .filter((line) => line.label.toLowerCase() !== "d20" && line.value !== 0)
+        .sort((first, second) => second.value - first.value)
+    : [];
 
   useEffect(() => {
     if (!isRolling) return undefined;
@@ -757,22 +808,9 @@ export default function TabletopCharacterRollerApp() {
         diceNotation: weapon.damageDice,
         diceResults: rolled.diceResults,
         breakdown: [
-          {
-            label: weapon.damageDice,
-            value: rolled.diceTotal,
-          },
-          {
-            label: `${abilityShortLabels[weapon.ability]} modifier`,
-            value: abilityBonus,
-          },
-          ...(rolled.flatBonus !== 0
-            ? [
-                {
-                  label: "Flat dice bonus",
-                  value: rolled.flatBonus,
-                },
-              ]
-            : []),
+          { label: weapon.damageDice, value: rolled.diceTotal },
+          { label: `${abilityShortLabels[weapon.ability]} modifier`, value: abilityBonus },
+          ...(rolled.flatBonus !== 0 ? [{ label: "Flat dice bonus", value: rolled.flatBonus }] : []),
         ],
       });
     });
@@ -798,18 +836,8 @@ export default function TabletopCharacterRollerApp() {
         diceNotation: spell.damageDice,
         diceResults: rolled.diceResults,
         breakdown: [
-          {
-            label: spell.damageDice,
-            value: rolled.diceTotal,
-          },
-          ...(rolled.flatBonus !== 0
-            ? [
-                {
-                  label: "Flat bonus",
-                  value: rolled.flatBonus,
-                },
-              ]
-            : []),
+          { label: spell.damageDice, value: rolled.diceTotal },
+          ...(rolled.flatBonus !== 0 ? [{ label: "Flat bonus", value: rolled.flatBonus }] : []),
         ],
       });
     });
@@ -824,18 +852,8 @@ export default function TabletopCharacterRollerApp() {
         diceNotation: manualNotation,
         diceResults: rolled.diceResults,
         breakdown: [
-          {
-            label: manualNotation,
-            value: rolled.diceTotal,
-          },
-          ...(rolled.flatBonus !== 0
-            ? [
-                {
-                  label: "Flat bonus",
-                  value: rolled.flatBonus,
-                },
-              ]
-            : []),
+          { label: manualNotation, value: rolled.diceTotal },
+          ...(rolled.flatBonus !== 0 ? [{ label: "Flat bonus", value: rolled.flatBonus }] : []),
         ],
       });
     });
@@ -869,22 +887,19 @@ export default function TabletopCharacterRollerApp() {
 
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-
     link.href = url;
     link.download = `${(character.name || "character").toLowerCase().replaceAll(" ", "-")}.json`;
-
     document.body.appendChild(link);
     link.click();
     link.remove();
-
     URL.revokeObjectURL(url);
   }
 
   async function importCharacterJson(file: File) {
     const text = await file.text();
     const parsed = JSON.parse(text) as Partial<Character> | { character?: Partial<Character> };
-
     setCharacter(normalizeCharacter(parsed));
+    setPendingImport(null);
     setImportReport({
       fileName: file.name,
       kind: "json",
@@ -897,6 +912,7 @@ export default function TabletopCharacterRollerApp() {
     const parsed = parseSheetText(text);
 
     setPendingImport(parsed);
+
     setImportReport({
       fileName,
       kind,
@@ -920,12 +936,26 @@ export default function TabletopCharacterRollerApp() {
 
       return normalizeCharacter({
         ...current,
-        ...patch,
+        ruleset: patch.ruleset ?? current.ruleset,
+        name: patch.name ?? current.name,
+        className: patch.className ?? current.className,
+        background: patch.background ?? current.background,
+        species: patch.species ?? current.species,
+        level: patch.level ?? current.level,
+        armorClass: patch.armorClass ?? current.armorClass,
+        speed: patch.speed ?? current.speed,
+        maxHp: patch.maxHp ?? current.maxHp,
+        currentHp: patch.currentHp ?? current.currentHp,
+        proficiencyBonus: patch.proficiencyBonus ?? current.proficiencyBonus,
+        spellcastingAbility: abilityKeys.includes(patch.spellcastingAbility as AbilityKey)
+          ? (patch.spellcastingAbility as AbilityKey)
+          : current.spellcastingAbility,
         abilities,
       });
     });
 
     setPendingImport(null);
+
     setImportReport((current) =>
       current
         ? {
@@ -1041,409 +1071,486 @@ export default function TabletopCharacterRollerApp() {
     if (file) await importImageCharacterSheet(file);
   }
 
-  const nonZeroModifierLines = activeRoll
-    ? activeRoll.breakdown
-        .filter((line) => line.label.toLowerCase() !== "d20" && line.value !== 0)
-        .sort((first, second) => second.value - first.value)
-    : [];
-
   return (
     <div className="sheet-bg min-h-screen text-stone-950">
       <SheetImportReview result={pendingImport} onApply={applyReviewedImport} onCancel={() => setPendingImport(null)} />
 
       <SheetCss />
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <header className="sheet-card mb-5 overflow-hidden rounded-sm border-2 border-stone-600 bg-stone-50">
-          <div className="grid gap-0 xl:grid-cols-[1fr_520px]">
-            <div className="border-b-2 border-stone-600 p-5 xl:border-b-0 xl:border-r-2">
-              <div className="mb-3 flex items-center gap-3">
-                <div>
-                  <h1 className="font-serif text-2xl font-black uppercase tracking-wider text-emerald-950 sm:text-3xl">Adventurer Sheet</h1>
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-500">{getRulesetName(character.ruleset)}</p>
-                </div>
-                <div className="h-[3px] flex-1 bg-emerald-950" />
-              </div>
-
-              <div className="grid gap-3 lg:grid-cols-[170px_1fr_90px]">
-                <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
-                  Ruleset
-                  <select
-                    value={character.ruleset}
-                    onChange={(event) => updateCharacter({ ruleset: event.target.value as Ruleset })}
-                    className="mt-1 w-full border border-stone-400 bg-white px-2 py-1.5 text-sm font-black uppercase tracking-wide outline-none focus:border-emerald-950"
-                  >
-                    <option value="dnd5e2024">D&D 2024 / 5.5</option>
-                    <option value="pf2eRemaster">Pathfinder 2e Remaster</option>
-                  </select>
-                </label>
-
-                <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
-                  Character Name
-                  <TextInput value={character.name} onChange={(name) => updateCharacter({ name })} className="mt-1 font-serif text-xl font-black" />
-                </label>
-
-                <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
-                  Level
-                  <NumberInput value={character.level} min={1} max={20} onChange={(level) => updateCharacter({ level })} className="mt-1 text-center font-serif text-xl font-black" />
-                </label>
-              </div>
-
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
-                  Class
-                  <TextInput value={character.className} onChange={(className) => updateCharacter({ className })} className="mt-1" />
-                </label>
-
-                <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
-                  Background
-                  <TextInput value={character.background} onChange={(background) => updateCharacter({ background })} className="mt-1" />
-                </label>
-
-                <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
-                  Species
-                  <TextInput value={character.species} onChange={(species) => updateCharacter({ species })} className="mt-1" />
-                </label>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-0 sm:grid-cols-4 xl:grid-cols-2">
-              <div className="border-b-2 border-r-2 border-stone-600 p-3">
-                <SheetField label="Armor Class" value={character.armorClass} />
-              </div>
-              <div className="border-b-2 border-r-2 border-stone-600 p-3 xl:border-r-0">
-                <SheetField label="Initiative" value={formatModifier(getModifier(character.abilities.dexterity))} />
-              </div>
-              <div className="border-b-2 border-r-2 border-stone-600 p-3">
-                <SheetField label="Speed" value={`${character.speed} ft`} />
-              </div>
-              <div className="border-b-2 border-stone-600 p-3">
-                <SheetField label={getBaseDcLabel(character.ruleset)} value={passivePerception} />
-              </div>
-              <div className="border-b-2 border-r-2 border-stone-600 p-3">
-                <SheetField label={character.ruleset === "pf2eRemaster" ? "Trained Bonus" : "Prof. Bonus"} value={formatModifier(proficiencyValue)} />
-              </div>
-              <div className="border-b-2 border-r-2 border-stone-600 p-3 xl:border-r-0">
-                <SheetField label="HP" value={`${character.currentHp}/${character.maxHp}`} />
-              </div>
-              <div className="border-r-2 border-stone-600 p-3">
-                <SheetField label="Spell DC" value={spellSaveDc} />
-              </div>
-              <div className="p-3">
-                <SheetField label="Spell Attack" value={formatModifier(spellAttackBonus)} />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="grid gap-6 xl:grid-cols-[390px_1fr]">
-          <section className="space-y-6">
-            <SheetCard>
-              <SectionTitle icon={User} title="Character" subtitle={`${getRulesetShortName(character.ruleset)} mode, defenses, and hit points`} />
-
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-[10px] font-black uppercase tracking-wide text-stone-500">
-                  Armor Class
-                  <NumberInput value={character.armorClass} min={1} max={40} onChange={(armorClass) => updateCharacter({ armorClass })} />
-                </label>
-
-                <label className="block text-[10px] font-black uppercase tracking-wide text-stone-500">
-                  Speed
-                  <NumberInput value={character.speed} min={0} max={200} onChange={(speed) => updateCharacter({ speed })} />
-                </label>
-
-                <label className="block text-[10px] font-black uppercase tracking-wide text-stone-500">
-                  Proficiency
-                  <NumberInput value={character.proficiencyBonus} min={0} max={12} onChange={(proficiencyBonus) => updateCharacter({ proficiencyBonus })} />
-                  <span className="mt-1 block text-[10px] font-bold normal-case tracking-normal text-stone-500">
-                    {character.ruleset === "pf2eRemaster" ? `Trained = level + 2 = ${formatModifier(character.level + 2)}` : "Used for proficient D&D rolls"}
-                  </span>
-                </label>
-
-                <label className="block text-[10px] font-black uppercase tracking-wide text-stone-500">
-                  Max HP
-                  <NumberInput value={character.maxHp} min={1} max={999} onChange={(maxHp) => updateCharacter({ maxHp, currentHp: Math.min(character.currentHp, maxHp) })} />
-                </label>
-
-                <label className="col-span-2 block text-[10px] font-black uppercase tracking-wide text-stone-500">
-                  Spellcasting Ability
-                  <select
-                    value={character.spellcastingAbility}
-                    onChange={(event) => updateCharacter({ spellcastingAbility: event.target.value as AbilityKey })}
-                    className="w-full border border-stone-400 bg-white px-2 py-1.5 text-sm font-semibold outline-none focus:border-emerald-950"
-                  >
-                    {abilityKeys.map((ability) => (
-                      <option key={ability} value={ability}>
-                        {abilityLabels[ability]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-
-              <div className="mt-4 border-2 border-stone-500 bg-white/50 p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-serif font-black uppercase text-emerald-950">
-                    <Heart className="h-4 w-4" /> Hit Points
-                  </div>
-                  <div className="font-serif text-xl font-black">
-                    {character.currentHp}/{character.maxHp}
-                  </div>
-                </div>
-
-                <div className="mb-3 h-3 overflow-hidden border border-stone-500 bg-stone-200">
-                  <div className="h-full bg-emerald-950 transition-all" style={{ width: `${clampNumber(hpPercentage, 0, 100)}%` }} />
-                </div>
-
-                <div className="grid grid-cols-[auto_1fr_auto] gap-2">
-                  <Button variant="outline" onClick={() => updateCharacter({ currentHp: Math.max(0, character.currentHp - 1) })}>
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <NumberInput value={character.currentHp} min={0} max={character.maxHp} onChange={(currentHp) => updateCharacter({ currentHp })} />
-                  <Button variant="outline" onClick={() => updateCharacter({ currentHp: Math.min(character.maxHp, character.currentHp + 1) })}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <label className="mt-3 block text-[10px] font-black uppercase tracking-wide text-stone-500">
-                  Temporary HP
-                  <NumberInput value={character.tempHp} min={0} max={999} onChange={(tempHp) => updateCharacter({ tempHp })} />
-                </label>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Button onClick={saveCharacter}>
-                  <Save className="mr-2 h-4 w-4" /> Save
-                </Button>
-                <Button onClick={resetCharacter} variant="outline">
-                  <RotateCcw className="mr-2 h-4 w-4" /> Reset
-                </Button>
-              </div>
-            </SheetCard>
-
-            <SheetCard>
-              <SectionTitle icon={FileText} title="Import / Export" subtitle="JSON, PDF text, and image OCR" />
-
-              <input ref={jsonInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => void handleJsonFileChange(event.target.files?.[0])} />
-              <input ref={pdfInputRef} type="file" accept="application/pdf,.pdf" className="hidden" onChange={(event) => void handlePdfFileChange(event.target.files?.[0])} />
-              <input ref={imageInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => void handleImageFileChange(event.target.files?.[0])} />
-
-              <div className="grid gap-2">
-                <Button onClick={exportCharacterJson}>
-                  <Download className="mr-2 h-4 w-4" /> Export JSON
-                </Button>
-                <Button variant="outline" onClick={() => jsonInputRef.current?.click()}>
-                  <Upload className="mr-2 h-4 w-4" /> Import JSON
-                </Button>
-                <Button variant="outline" onClick={() => pdfInputRef.current?.click()}>
-                  <FileText className="mr-2 h-4 w-4" /> Parse PDF
-                </Button>
-                <Button variant="outline" onClick={() => imageInputRef.current?.click()}>
-                  <Upload className="mr-2 h-4 w-4" /> Import Image OCR
-                </Button>
-              </div>
-
-              {isImporting ? (
-                <div className="mt-3 border-2 border-stone-400 bg-white/60 p-3 text-sm font-black uppercase tracking-wide text-emerald-950">
-                  Reading sheet... {ocrProgress > 0 ? `${ocrProgress}%` : ""}
-                </div>
-              ) : null}
-
-              {importReport ? (
-                <div className="mt-3 border-2 border-stone-400 bg-white/60 p-3 text-xs font-semibold text-stone-600">
-                  <div className="font-serif text-sm font-black uppercase text-emerald-950">
-                    {importReport.kind.toUpperCase()} import: {importReport.fileName}
-                  </div>
-
-                  {importReport.pagesRead ? <div>Pages read: {importReport.pagesRead}</div> : null}
-
-                  <div className="mt-2">
-                    <strong>Fields found:</strong> {importReport.fieldsFound.length ? importReport.fieldsFound.join(", ") : "None"}
-                  </div>
-
-                  {importReport.warnings.length ? (
-                    <div className="mt-2">
-                      <strong>Warnings:</strong> {importReport.warnings.join(" ")}
+      <div className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">
+        <main className="grid gap-0 xl:grid-cols-[minmax(0,7fr)_6px_minmax(420px,3fr)]">     <section className="space-y-6 pr-0 xl:pr-8">
+            <header className="sheet-card overflow-hidden rounded-sm border-2 border-stone-600 bg-stone-50">
+                <div className="grid gap-0">
+                  <div className="border-b-2 border-stone-600 p-5">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div>
+                      <h1 className="font-serif text-2xl font-black uppercase tracking-wider text-emerald-950 sm:text-3xl">
+                        Adventurer Sheet
+                      </h1>
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-500">
+                        {getRulesetName(character.ruleset)}
+                      </p>
                     </div>
-                  ) : null}
+                    <div className="h-[3px] flex-1 bg-emerald-950" />
+                  </div>
 
-                  {importReport.extractedText ? (
-                    <details className="mt-2">
-                      <summary className="cursor-pointer font-black uppercase text-emerald-950">Extracted text preview</summary>
-                      <p className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap border border-stone-300 bg-white p-2">{importReport.extractedText}</p>
-                    </details>
-                  ) : null}
-                </div>
-              ) : null}
-
-              <p className="mt-3 text-xs font-semibold leading-relaxed text-stone-500">
-                Image OCR creates an editable draft. Review imported fields before saving, especially handwritten sheets.
-              </p>
-            </SheetCard>
-
-            <SheetCard>
-              <SectionTitle icon={Sparkles} title="Attributes" subtitle="Score, modifier, and quick check" />
-
-              <div className="grid grid-cols-2 gap-3">
-                {abilityKeys.map((ability) => {
-                  const score = character.abilities[ability];
-                  const modifier = getModifier(score);
-
-                  return (
-                    <div key={ability} className="border-2 border-stone-600 bg-stone-50 p-3 text-center">
-                      <div className="font-serif text-sm font-black uppercase tracking-wide text-emerald-950">{abilityLabels[ability]}</div>
-                      <button
-                        type="button"
-                        onClick={() => rollAbilityCheck(ability)}
-                        className="mx-auto my-2 flex h-14 w-14 items-center justify-center rounded-full border-2 border-stone-600 bg-white font-serif text-xl font-black shadow-sm"
+                  <div className="grid gap-3 lg:grid-cols-[170px_1fr_90px]">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
+                      Ruleset
+                      <select
+                        value={character.ruleset}
+                        onChange={(event) => updateCharacter({ ruleset: event.target.value as Ruleset })}
+                        className="mt-1 w-full border border-stone-400 bg-white px-2 py-1.5 text-sm font-black uppercase tracking-wide outline-none focus:border-emerald-950"
                       >
-                        {formatModifier(modifier)}
-                      </button>
-                      <div className="text-[10px] font-black uppercase tracking-wide text-stone-500">Score</div>
-                      <NumberInput value={score} min={1} max={30} onChange={(value) => updateAbility(ability, value)} className="text-center" />
-                    </div>
-                  );
-                })}
+                        <option value="dnd5e2024">D&D 2024 / 5.5</option>
+                        <option value="pf2eRemaster">Pathfinder 2e Remaster</option>
+                      </select>
+                    </label>
+
+                    <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
+                      Character Name
+                      <TextInput
+                        value={character.name}
+                        onChange={(name) => updateCharacter({ name })}
+                        className="mt-1 font-serif text-xl font-black"
+                      />
+                    </label>
+
+                    <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
+                      Level
+                      <NumberInput
+                        value={character.level}
+                        min={1}
+                        max={20}
+                        onChange={(level) => updateCharacter({ level })}
+                        className="mt-1 text-center font-serif text-xl font-black"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
+                      Class
+                      <TextInput value={character.className} onChange={(className) => updateCharacter({ className })} className="mt-1" />
+                    </label>
+
+                    <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
+                      Background
+                      <TextInput value={character.background} onChange={(background) => updateCharacter({ background })} className="mt-1" />
+                    </label>
+
+                    <label className="block text-[10px] font-black uppercase tracking-[0.18em] text-stone-500">
+                      Species
+                      <TextInput value={character.species} onChange={(species) => updateCharacter({ species })} className="mt-1" />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-0 sm:grid-cols-4">
+                  <div className="border-b-2 border-r-2 border-stone-600 p-3">
+                    <SheetField label="Armor Class" value={character.armorClass} />
+                  </div>
+                  <div className="border-b-2 border-r-2 border-stone-600 p-3 xl:border-r-0">
+                    <SheetField label="Initiative" value={formatModifier(getModifier(character.abilities.dexterity))} />
+                  </div>
+                  <div className="border-b-2 border-r-2 border-stone-600 p-3">
+                    <SheetField label="Speed" value={`${character.speed} ft`} />
+                  </div>
+                  <div className="border-b-2 border-stone-600 p-3">
+                    <SheetField label={getBaseDcLabel(character.ruleset)} value={passivePerception} />
+                  </div>
+                  <div className="border-b-2 border-r-2 border-stone-600 p-3">
+                    <SheetField
+                      label={character.ruleset === "pf2eRemaster" ? "Trained Bonus" : "Prof. Bonus"}
+                      value={formatModifier(proficiencyValue)}
+                    />
+                  </div>
+                  <div className="border-b-2 border-r-2 border-stone-600 p-3 xl:border-r-0">
+                    <SheetField label="HP" value={`${character.currentHp}/${character.maxHp}`} />
+                  </div>
+                  <div className="border-r-2 border-stone-600 p-3">
+                    <SheetField label="Spell DC" value={spellSaveDc} />
+                  </div>
+                  <div className="p-3">
+                    <SheetField label="Spell Attack" value={formatModifier(spellAttackBonus)} />
+                  </div>
+                </div>
               </div>
-            </SheetCard>
+            </header>
 
-            <SheetCard>
-              <SectionTitle icon={Shield} title="Saving Throws" subtitle={`${getProficiencyLabel(character.ruleset)} circles and rolls`} />
+            <div className="grid gap-6">
+              <div className="space-y-6">
+                <SheetCard>
+                  <SectionTitle
+                    icon={User}
+                    title="Character"
+                    subtitle={`${getRulesetShortName(character.ruleset)} mode, defenses, and hit points`}
+                  />
 
-              <div className="grid grid-cols-2 gap-2">
-                {abilityKeys.map((ability) => {
-                  const active = character.savingThrowProficiencies[ability];
-                  const total = getModifier(character.abilities[ability]) + getSystemProficiencyBonus(character, active);
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block text-[10px] font-black uppercase tracking-wide text-stone-500">
+                      Armor Class
+                      <NumberInput
+                        value={character.armorClass}
+                        min={1}
+                        max={40}
+                        onChange={(armorClass) => updateCharacter({ armorClass })}
+                      />
+                    </label>
 
-                  return (
-                    <div key={ability} className="border border-stone-400 bg-white/60 p-2">
-                      <label className="mb-2 flex items-center justify-between gap-2 text-sm font-black uppercase tracking-wide text-stone-700">
-                        <span className="flex items-center gap-2">
-                          <ProficiencyDot active={active} /> {abilityShortLabels[ability]} {formatModifier(total)}
-                        </span>
-                        <input type="checkbox" checked={active} onChange={(event) => updateSaveProficiency(ability, event.target.checked)} />
-                      </label>
-                      <Button onClick={() => rollSavingThrow(ability)} variant="outline" className="w-full">
-                        Roll Save
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </SheetCard>
+                    <label className="block text-[10px] font-black uppercase tracking-wide text-stone-500">
+                      Speed
+                      <NumberInput value={character.speed} min={0} max={200} onChange={(speed) => updateCharacter({ speed })} />
+                    </label>
 
-            <SheetCard>
-              <SectionTitle icon={ScrollText} title="Skills" subtitle={`Compact rows with ${getProficiencyLabel(character.ruleset).toLowerCase()} circles`} />
-
-              <div className="grid gap-x-4 gap-y-2">
-                {skillKeys.map((skill) => {
-                  const skillData = skillConfig[skill];
-                  const active = character.skillProficiencies[skill];
-                  const total = getModifier(character.abilities[skillData.ability]) + getSystemProficiencyBonus(character, active);
-
-                  return (
-                    <div key={skill} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 border-b border-stone-300 py-1">
-                      <label className="flex items-center gap-2 text-sm font-black text-stone-800">
-                        <input type="checkbox" checked={active} onChange={(event) => updateSkillProficiency(skill, event.target.checked)} className="hidden" />
-                        <ProficiencyDot active={active} />
-                        {skillData.label}
-                      </label>
-                      <span className="text-[10px] font-black uppercase tracking-wide text-stone-500">
-                        {abilityShortLabels[skillData.ability]} {formatModifier(total)}
+                    <label className="block text-[10px] font-black uppercase tracking-wide text-stone-500">
+                      Proficiency
+                      <NumberInput
+                        value={character.proficiencyBonus}
+                        min={0}
+                        max={12}
+                        onChange={(proficiencyBonus) => updateCharacter({ proficiencyBonus })}
+                      />
+                      <span className="mt-1 block text-[10px] font-bold normal-case tracking-normal text-stone-500">
+                        {character.ruleset === "pf2eRemaster"
+                          ? `Trained = level + 2 = ${formatModifier(character.level + 2)}`
+                          : "Used for proficient D&D rolls"}
                       </span>
-                      <Button onClick={() => rollSkill(skill)} variant="outline" className="h-7 px-2">
-                        Roll
+                    </label>
+
+                    <label className="block text-[10px] font-black uppercase tracking-wide text-stone-500">
+                      Max HP
+                      <NumberInput
+                        value={character.maxHp}
+                        min={1}
+                        max={999}
+                        onChange={(maxHp) =>
+                          updateCharacter({
+                            maxHp,
+                            currentHp: Math.min(character.currentHp, maxHp),
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label className="col-span-2 block text-[10px] font-black uppercase tracking-wide text-stone-500">
+                      Spellcasting Ability
+                      <select
+                        value={character.spellcastingAbility}
+                        onChange={(event) => updateCharacter({ spellcastingAbility: event.target.value as AbilityKey })}
+                        className="w-full border border-stone-400 bg-white px-2 py-1.5 text-sm font-semibold outline-none focus:border-emerald-950"
+                      >
+                        {abilityKeys.map((ability) => (
+                          <option key={ability} value={ability}>
+                            {abilityLabels[ability]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="mt-4 border-2 border-stone-500 bg-white/50 p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-serif font-black uppercase text-emerald-950">
+                        <Heart className="h-4 w-4" /> Hit Points
+                      </div>
+                      <div className="font-serif text-xl font-black">
+                        {character.currentHp}/{character.maxHp}
+                      </div>
+                    </div>
+
+                    <div className="mb-3 h-3 overflow-hidden border border-stone-500 bg-stone-200">
+                      <div
+                        className="h-full bg-emerald-950 transition-all"
+                        style={{ width: `${clampNumber(hpPercentage, 0, 100)}%` }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-[auto_1fr_auto] gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => updateCharacter({ currentHp: Math.max(0, character.currentHp - 1) })}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+
+                      <NumberInput
+                        value={character.currentHp}
+                        min={0}
+                        max={character.maxHp}
+                        onChange={(currentHp) => updateCharacter({ currentHp })}
+                      />
+
+                      <Button
+                        variant="outline"
+                        onClick={() => updateCharacter({ currentHp: Math.min(character.maxHp, character.currentHp + 1) })}
+                      >
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                  );
-                })}
+
+                    <label className="mt-3 block text-[10px] font-black uppercase tracking-wide text-stone-500">
+                      Temporary HP
+                      <NumberInput value={character.tempHp} min={0} max={999} onChange={(tempHp) => updateCharacter({ tempHp })} />
+                    </label>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <Button onClick={saveCharacter}>
+                      <Save className="mr-2 h-4 w-4" /> Save
+                    </Button>
+
+                    <Button onClick={resetCharacter} variant="outline">
+                      <RotateCcw className="mr-2 h-4 w-4" /> Reset
+                    </Button>
+                  </div>
+                </SheetCard>
+
+                <SheetCard>
+                  <SectionTitle icon={FileText} title="Import / Export" subtitle="JSON, PDF text, and image OCR" />
+
+                  <input
+                    ref={jsonInputRef}
+                    type="file"
+                    accept="application/json,.json"
+                    className="hidden"
+                    onChange={(event) => void handleJsonFileChange(event.target.files?.[0])}
+                  />
+
+                  <input
+                    ref={pdfInputRef}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="hidden"
+                    onChange={(event) => void handlePdfFileChange(event.target.files?.[0])}
+                  />
+
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="hidden"
+                    onChange={(event) => void handleImageFileChange(event.target.files?.[0])}
+                  />
+
+                  <div className="grid gap-2">
+                    <Button onClick={exportCharacterJson}>
+                      <Download className="mr-2 h-4 w-4" /> Export JSON
+                    </Button>
+
+                    <Button variant="outline" onClick={() => jsonInputRef.current?.click()}>
+                      <Upload className="mr-2 h-4 w-4" /> Import JSON
+                    </Button>
+
+                    <Button variant="outline" onClick={() => pdfInputRef.current?.click()}>
+                      <FileText className="mr-2 h-4 w-4" /> Parse PDF
+                    </Button>
+
+                    <Button variant="outline" onClick={() => imageInputRef.current?.click()}>
+                      <Upload className="mr-2 h-4 w-4" /> Import Image OCR
+                    </Button>
+                  </div>
+
+                  {isImporting ? (
+                    <div className="mt-3 border-2 border-stone-400 bg-white/60 p-3 text-sm font-black uppercase tracking-wide text-emerald-950">
+                      Reading sheet... {ocrProgress > 0 ? `${ocrProgress}%` : ""}
+                    </div>
+                  ) : null}
+
+                  {importReport ? (
+                    <div className="mt-3 border-2 border-stone-400 bg-white/60 p-3 text-xs font-semibold text-stone-600">
+                      <div className="font-serif text-sm font-black uppercase text-emerald-950">
+                        {importReport.kind.toUpperCase()} import: {importReport.fileName}
+                      </div>
+
+                      {importReport.pagesRead ? <div>Pages read: {importReport.pagesRead}</div> : null}
+
+                      <div className="mt-2">
+                        <strong>Fields found:</strong>{" "}
+                        {importReport.fieldsFound.length ? importReport.fieldsFound.join(", ") : "None"}
+                      </div>
+
+                      {importReport.warnings.length ? (
+                        <div className="mt-2">
+                          <strong>Warnings:</strong> {importReport.warnings.join(" ")}
+                        </div>
+                      ) : null}
+
+                      {importReport.extractedText ? (
+                        <details className="mt-2">
+                          <summary className="cursor-pointer font-black uppercase text-emerald-950">Extracted text preview</summary>
+                          <p className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap border border-stone-300 bg-white p-2">
+                            {importReport.extractedText}
+                          </p>
+                        </details>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <p className="mt-3 text-xs font-semibold leading-relaxed text-stone-500">
+                    Image OCR creates an editable draft. Review imported fields before saving, especially handwritten sheets.
+                  </p>
+                </SheetCard>
               </div>
-            </SheetCard>
-          </section>
 
-          <section className="space-y-6">
-            <SheetCard className="xl:sticky xl:top-4 xl:z-10">
-              <SectionTitle icon={Dices} title="Roll Center" subtitle="Roll, all modifiers, and final total" />
+              <div className="space-y-6">
+                <SheetCard>
+                  <SectionTitle icon={Sparkles} title="Attributes" subtitle="Score, modifier, and quick check" />
 
-              <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
-                <div className="flex min-h-[300px] flex-col items-center justify-center border-2 border-emerald-950 bg-emerald-950 p-5 text-center text-white">
-                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Result</div>
-                  <div className="max-w-full overflow-hidden text-ellipsis font-serif text-7xl font-black leading-none">{activeRoll ? activeRoll.total : "--"}</div>
-                  <div className="mt-3 text-xs font-black uppercase tracking-wide text-white/60">Final total</div>
-                </div>
+                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
+                    {abilityKeys.map((ability) => {
+                      const score = character.abilities[ability];
+                      const modifier = getModifier(score);
 
-                <div className="min-h-[300px] border-2 border-stone-500 bg-stone-50 p-4 sheet-lines">
-                  <AnimatePresence mode="wait">
-                    {activeRoll ? (
-                      <motion.div key={activeRoll.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                        <h3 className="mb-4 border-b-2 border-emerald-950 pb-2 font-serif text-2xl font-black uppercase tracking-wide text-emerald-950">{activeRoll.title}</h3>
-
-                        <div className="flex min-h-[170px] w-full flex-col items-center justify-center border-2 border-emerald-950 bg-emerald-950 p-4 text-white">
-                          <motion.div
-                            animate={isRolling ? { rotate: [0, 18, -18, 360], scale: [1, 1.08, 0.96, 1.05] } : { rotate: 0, scale: 1 }}
-                            transition={{ duration: 0.35, repeat: isRolling ? Infinity : 0 }}
-                            className="flex h-36 w-36 items-center justify-center border-4 border-white/30 bg-white/10 font-serif text-7xl font-black shadow-2xl backdrop-blur"
-                          >
-                            {isRolling ? previewDieNumber : activeRoll?.diceResults[0] ?? 20}
-                          </motion.div>
-                          <div className="mt-3 max-w-full text-center">
-                            <div className="text-[10px] font-black uppercase tracking-wider text-white/60">Raw Roll</div>
-                            <div className="truncate font-serif text-lg font-black">{activeRoll.diceNotation}</div>
+                      return (
+                        <div key={ability} className="border-2 border-stone-600 bg-stone-50 p-3 text-center">
+                          <div className="font-serif text-sm font-black uppercase tracking-wide text-emerald-950">
+                            {abilityLabels[ability]}
                           </div>
-                        </div>
 
-                        <div className="mt-4 space-y-2">
-                          {nonZeroModifierLines.length ? (
-                            nonZeroModifierLines.map((line, index) => (
-                              <div key={`${line.label}-${index}`} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden border border-stone-400 bg-white/70 px-3 py-2">
-                                <span className="truncate text-xs font-black uppercase tracking-wide text-stone-600">{line.label}</span>
-                                <span className="shrink-0 rounded-sm border border-stone-300 bg-stone-50 px-3 py-1 text-right font-serif text-lg font-black leading-none text-stone-950">
-                                  {formatModifier(line.value)}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="border border-stone-400 bg-white/70 px-3 py-2 text-xs font-black uppercase tracking-wide text-stone-500">No non-zero modifiers</div>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => rollAbilityCheck(ability)}
+                            className="mx-auto my-2 flex h-14 w-14 items-center justify-center rounded-full border-2 border-stone-600 bg-white font-serif text-xl font-black shadow-sm"
+                          >
+                            {formatModifier(modifier)}
+                          </button>
+
+                          <div className="text-[10px] font-black uppercase tracking-wide text-stone-500">Score</div>
+
+                          <NumberInput
+                            value={score}
+                            min={1}
+                            max={30}
+                            onChange={(value) => updateAbility(ability, value)}
+                            className="text-center"
+                          />
                         </div>
-                      </motion.div>
-                    ) : (
-                      <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex min-h-[260px] flex-col items-center justify-center text-center">
-                        <Dices className="mb-3 h-12 w-12 text-stone-300" />
-                        <h3 className="font-serif text-xl font-black uppercase text-emerald-950">No rolls yet</h3>
-                        <p className="mt-1 max-w-sm text-sm font-semibold text-stone-500">Roll initiative, a skill check, a save, a weapon attack, or manual dice.</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      );
+                    })}
+                  </div>
+                </SheetCard>
+
+                <div className="grid gap-6">
+                  <SheetCard>
+                    <SectionTitle
+                      icon={Shield}
+                      title="Saving Throws"
+                      subtitle={`${getProficiencyLabel(character.ruleset)} circles and rolls`}
+                    />
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {abilityKeys.map((ability) => {
+                        const active = character.savingThrowProficiencies[ability];
+                        const total = getModifier(character.abilities[ability]) + getSystemProficiencyBonus(character, active);
+
+                        return (
+                          <div key={ability} className="border border-stone-400 bg-white/60 p-2">
+                            <label className="mb-2 flex items-center justify-between gap-2 text-sm font-black uppercase tracking-wide text-stone-700">
+                              <span className="flex items-center gap-2">
+                                <ProficiencyDot active={active} /> {abilityShortLabels[ability]} {formatModifier(total)}
+                              </span>
+
+                              <input
+                                type="checkbox"
+                                checked={active}
+                                onChange={(event) => updateSaveProficiency(ability, event.target.checked)}
+                              />
+                            </label>
+
+                            <Button onClick={() => rollSavingThrow(ability)} variant="outline" className="w-full">
+                              Roll Save
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </SheetCard>
+
+                  <SheetCard>
+                    <SectionTitle
+                      icon={ScrollText}
+                      title="Skills"
+                      subtitle={`Compact rows with ${getProficiencyLabel(character.ruleset).toLowerCase()} circles`}
+                    />
+
+                    <div className="grid gap-x-4 gap-y-2">
+                      {skillKeys.map((skill) => {
+                        const skillData = skillConfig[skill];
+                        const active = character.skillProficiencies[skill];
+                        const total =
+                          getModifier(character.abilities[skillData.ability]) + getSystemProficiencyBonus(character, active);
+
+                        return (
+                          <div key={skill} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 border-b border-stone-300 py-1">
+                            <label className="flex items-center gap-2 text-sm font-black text-stone-800">
+                              <input
+                                type="checkbox"
+                                checked={active}
+                                onChange={(event) => updateSkillProficiency(skill, event.target.checked)}
+                                className="hidden"
+                              />
+                              <ProficiencyDot active={active} />
+                              {skillData.label}
+                            </label>
+
+                            <span className="text-[10px] font-black uppercase tracking-wide text-stone-500">
+                              {abilityShortLabels[skillData.ability]} {formatModifier(total)}
+                            </span>
+
+                            <Button onClick={() => rollSkill(skill)} variant="outline" className="h-7 px-2">
+                              Roll
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </SheetCard>
                 </div>
               </div>
-            </SheetCard>
-
-            <div className="grid gap-6 lg:grid-cols-2">
+            </div>
+                        <div className="grid gap-6 lg:grid-cols-2">
               <SheetCard>
                 <SectionTitle icon={Crosshair} title="Quick Rolls" subtitle="Common actions" />
+
                 <div className="grid grid-cols-2 gap-2">
                   <Button onClick={rollInitiative}>Initiative</Button>
-                  <Button onClick={() => rollSkill("perception")} variant="outline">Perception</Button>
-                  <Button onClick={() => rollSkill("stealth")} variant="outline">Stealth</Button>
-                  <Button onClick={() => rollSkill("athletics")} variant="outline">Athletics</Button>
+                  <Button onClick={() => rollSkill("perception")} variant="outline">
+                    Perception
+                  </Button>
+                  <Button onClick={() => rollSkill("stealth")} variant="outline">
+                    Stealth
+                  </Button>
+                  <Button onClick={() => rollSkill("athletics")} variant="outline">
+                    Athletics
+                  </Button>
                 </div>
+
                 <div className="mt-4 border-2 border-stone-500 bg-white/50 p-3">
-                  <div className="mb-2 font-serif text-sm font-black uppercase tracking-wide text-emerald-950">Manual Dice</div>
+                  <div className="mb-2 font-serif text-sm font-black uppercase tracking-wide text-emerald-950">
+                    Manual Dice
+                  </div>
+
                   <div className="flex gap-2">
                     <TextInput value={manualNotation} onChange={setManualNotation} placeholder="1d20, 2d6, 1d8+3" />
                     <Button onClick={rollManualDice}>Roll</Button>
                   </div>
-                  <p className="mt-2 text-xs font-semibold text-stone-500">Supports 1d20, 2d6, 1d8+3, and 4d4-1.</p>
+
+                  <p className="mt-2 text-xs font-semibold text-stone-500">
+                    Supports 1d20, 2d6, 1d8+3, and 4d4-1.
+                  </p>
                 </div>
               </SheetCard>
 
               <SheetCard>
                 <SectionTitle icon={History} title="Roll History" subtitle="Most recent 30 rolls" />
+
                 {rollHistory.length === 0 ? (
-                  <div className="border-2 border-dashed border-stone-300 bg-white/50 p-5 text-center text-sm font-semibold text-stone-500">Your roll history will appear here.</div>
+                  <div className="border-2 border-dashed border-stone-300 bg-white/50 p-5 text-center text-sm font-semibold text-stone-500">
+                    Your roll history will appear here.
+                  </div>
                 ) : (
-                  <div className="max-h-80 space-y-2 overflow-auto">
+                  <div className="max-h-96 space-y-2 overflow-auto">
                     {rollHistory.map((roll) => (
                       <button
                         key={roll.id}
@@ -1455,10 +1562,17 @@ export default function TabletopCharacterRollerApp() {
                           <div>
                             <div className="font-serif font-black uppercase text-emerald-950">{roll.title}</div>
                             <div className="text-xs font-semibold text-stone-500">
-                              {new Date(roll.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · {roll.diceNotation}
+                              {new Date(roll.timestamp).toLocaleTimeString([], {
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}{" "}
+                              · {roll.diceNotation}
                             </div>
                           </div>
-                          <div className="border-2 border-emerald-950 bg-emerald-950 px-3 py-1 font-serif text-lg font-black text-white">{roll.total}</div>
+
+                          <div className="border-2 border-emerald-950 bg-emerald-950 px-3 py-1 font-serif text-lg font-black text-white">
+                            {roll.total}
+                          </div>
                         </div>
                       </button>
                     ))}
@@ -1466,10 +1580,10 @@ export default function TabletopCharacterRollerApp() {
                 )}
               </SheetCard>
             </div>
-
             <SheetCard>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <SectionTitle icon={Sword} title="Weapons & Damage" subtitle="Attack bonuses, damage dice, and traits" />
+
                 <Button onClick={addWeapon} variant="outline">
                   <Plus className="mr-2 h-4 w-4" /> Add
                 </Button>
@@ -1512,18 +1626,29 @@ export default function TabletopCharacterRollerApp() {
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap gap-4 text-sm font-semibold text-stone-600">
                         <label className="flex items-center gap-2">
-                          <input type="checkbox" checked={weapon.proficient} onChange={(event) => updateWeapon(weapon.id, { proficient: event.target.checked })} />
+                          <input
+                            type="checkbox"
+                            checked={weapon.proficient}
+                            onChange={(event) => updateWeapon(weapon.id, { proficient: event.target.checked })}
+                          />
                           {getProficiencyLabel(character.ruleset)}
                         </label>
+
                         <label className="flex items-center gap-2">
-                          <input type="checkbox" checked={weapon.damageBonusAbility} onChange={(event) => updateWeapon(weapon.id, { damageBonusAbility: event.target.checked })} />
+                          <input
+                            type="checkbox"
+                            checked={weapon.damageBonusAbility}
+                            onChange={(event) => updateWeapon(weapon.id, { damageBonusAbility: event.target.checked })}
+                          />
                           Add ability to damage
                         </label>
                       </div>
 
                       <div className="flex gap-2">
                         <Button onClick={() => rollWeaponAttack(weapon)}>Attack</Button>
-                        <Button onClick={() => rollWeaponDamage(weapon)} variant="outline">Damage</Button>
+                        <Button onClick={() => rollWeaponDamage(weapon)} variant="outline">
+                          Damage
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -1534,6 +1659,7 @@ export default function TabletopCharacterRollerApp() {
             <SheetCard>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <SectionTitle icon={Sparkles} title="Spellcasting" subtitle="Spell cards, save DC, and spell attack rolls" />
+
                 <Button onClick={addSpell} variant="outline">
                   <Plus className="mr-2 h-4 w-4" /> Add
                 </Button>
@@ -1607,18 +1733,33 @@ export default function TabletopCharacterRollerApp() {
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap gap-4 text-sm font-semibold text-stone-600">
                         <label className="flex items-center gap-2">
-                          <input type="checkbox" checked={spell.attackRoll} onChange={(event) => updateSpell(spell.id, { attackRoll: event.target.checked })} />
+                          <input
+                            type="checkbox"
+                            checked={spell.attackRoll}
+                            onChange={(event) => updateSpell(spell.id, { attackRoll: event.target.checked })}
+                          />
                           Attack roll
                         </label>
+
                         <label className="flex items-center gap-2">
-                          <input type="checkbox" checked={spell.savingThrow} onChange={(event) => updateSpell(spell.id, { savingThrow: event.target.checked })} />
+                          <input
+                            type="checkbox"
+                            checked={spell.savingThrow}
+                            onChange={(event) => updateSpell(spell.id, { savingThrow: event.target.checked })}
+                          />
                           Save DC {spellSaveDc} {abilityShortLabels[spell.saveAbility]}
                         </label>
                       </div>
 
                       <div className="flex flex-wrap gap-2">
                         {spell.attackRoll ? <Button onClick={() => rollSpellAttack(spell)}>Attack</Button> : null}
-                        {spell.damageDice ? <Button onClick={() => rollSpellDamage(spell)} variant="outline">Damage</Button> : null}
+
+                        {spell.damageDice ? (
+                          <Button onClick={() => rollSpellDamage(spell)} variant="outline">
+                            Damage
+                          </Button>
+                        ) : null}
+
                         <Button onClick={() => removeSpell(spell.id)} variant="outline">
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1629,6 +1770,95 @@ export default function TabletopCharacterRollerApp() {
               </div>
             </SheetCard>
           </section>
+
+          <div className="hidden self-stretch bg-stone-900 xl:block" />
+
+            <aside className="mt-6 space-y-6 border-t-4 border-stone-900 pt-6 xl:mt-0 xl:self-stretch xl:border-t-0 xl:pl-8 xl:pt-0">
+            <SheetCard className="xl:sticky xl:top-6">
+              <SectionTitle icon={Dices} title="Roll Center" subtitle="Roll, modifiers, and final total" />
+
+              <div className="grid gap-4">
+                <div className="flex min-h-[220px] flex-col items-center justify-center border-2 border-emerald-950 bg-emerald-950 p-5 text-center text-white">
+                  <div className="text-[11px] font-black uppercase tracking-[0.2em] text-white/60">Result</div>
+                  <div className="max-w-full overflow-hidden text-ellipsis font-serif text-6xl font-black leading-none">
+                    {activeRoll ? activeRoll.total : "--"}
+                  </div>
+                  <div className="mt-3 text-xs font-black uppercase tracking-wide text-white/60">Final total</div>
+                </div>
+
+                <div className="min-h-[220px] border-2 border-stone-500 bg-stone-50 p-4 sheet-lines">
+                  <AnimatePresence mode="wait">
+                    {activeRoll ? (
+                      <motion.div
+                        key={activeRoll.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                      >
+                        <h3 className="mb-4 border-b-2 border-emerald-950 pb-2 font-serif text-xl font-black uppercase tracking-wide text-emerald-950">
+                          {activeRoll.title}
+                        </h3>
+
+                        <div className="flex min-h-[150px] w-full flex-col items-center justify-center border-2 border-emerald-950 bg-emerald-950 p-4 text-white">
+                          <motion.div
+                            animate={
+                              isRolling
+                                ? { rotate: [0, 18, -18, 360], scale: [1, 1.08, 0.96, 1.05] }
+                                : { rotate: 0, scale: 1 }
+                            }
+                            transition={{ duration: 0.35, repeat: isRolling ? Infinity : 0 }}
+                            className="flex h-32 w-32 items-center justify-center border-4 border-white/30 bg-white/10 font-serif text-6xl font-black shadow-2xl backdrop-blur"
+                          >
+                            {isRolling ? previewDieNumber : activeRoll?.diceResults[0] ?? 20}
+                          </motion.div>
+
+                          <div className="mt-3 max-w-full text-center">
+                            <div className="text-[10px] font-black uppercase tracking-wider text-white/60">Raw Roll</div>
+                            <div className="truncate font-serif text-lg font-black">{activeRoll.diceNotation}</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                          {nonZeroModifierLines.length ? (
+                            nonZeroModifierLines.map((line, index) => (
+                              <div
+                                key={`${line.label}-${index}`}
+                                className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden border border-stone-400 bg-white/70 px-3 py-2"
+                              >
+                                <span className="truncate text-xs font-black uppercase tracking-wide text-stone-600">
+                                  {line.label}
+                                </span>
+                                <span className="shrink-0 rounded-sm border border-stone-300 bg-stone-50 px-3 py-1 text-right font-serif text-lg font-black leading-none text-stone-950">
+                                  {formatModifier(line.value)}
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="border border-stone-400 bg-white/70 px-3 py-2 text-xs font-black uppercase tracking-wide text-stone-500">
+                              No non-zero modifiers
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="empty"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex min-h-[260px] flex-col items-center justify-center text-center"
+                      >
+                        <Dices className="mb-3 h-12 w-12 text-stone-300" />
+                        <h3 className="font-serif text-xl font-black uppercase text-emerald-950">No rolls yet</h3>
+                        <p className="mt-1 max-w-sm text-sm font-semibold text-stone-500">
+                          Roll initiative, a skill check, a save, a weapon attack, or manual dice.
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </SheetCard>
+          </aside>
         </main>
       </div>
     </div>

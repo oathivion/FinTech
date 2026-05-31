@@ -148,6 +148,7 @@ export default function SheetImportReview({ result, onApply, onCancel }: SheetIm
                 <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/60">Detected Ruleset</div>
                 <div className="font-serif text-lg font-black">{result.ruleset}</div>
               </div>
+
               <div className="border border-white/30 px-3 py-2">
                 <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/60">Pipeline</div>
                 <div className="font-serif text-lg font-black">Agent Review</div>
@@ -214,7 +215,8 @@ export default function SheetImportReview({ result, onApply, onCancel }: SheetIm
 
                           <div className="sm:col-span-4">
                             <div className="text-xs font-semibold text-stone-500">
-                              <span className="font-black uppercase tracking-wide text-stone-600">Source:</span> {row.sourceText}
+                              <span className="font-black uppercase tracking-wide text-stone-600">Source:</span>{" "}
+                              {row.sourceText}
                             </div>
                             {row.notes ? <div className="mt-1 text-xs font-semibold text-stone-500">{row.notes}</div> : null}
                           </div>
