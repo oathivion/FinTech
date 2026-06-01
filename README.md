@@ -1,54 +1,76 @@
-# Tabletop Character Sheet Helper
+## Case Study: Turning Character Sheets into Structured Data
 
-A React app for managing tabletop RPG character sheets, rolling dice, and importing character data from PDFs or images.
+This project started as a tabletop dice roller and character sheet helper, but it has grown into a practical experiment in document understanding and structured data workflows.
 
-The app currently supports D&D-style and Pathfinder-style character data, including abilities, skills, saves, weapons, spells, hit points, armor class, and dice roll breakdowns.
+The core problem is simple:
 
-## Current Features
+> Can messy tabletop character sheet data from PDFs, screenshots, and images be turned into structured, reviewable character data that a user can trust?
 
-- Character sheet interface
-- D&D 2024 / 5e-style support
-- Pathfinder 2e Remaster-style support
-- Dice rolling with modifier breakdowns
-- Skills, saving throws, weapons, and spells
+### What the App Does
+
+The app lets a user manage a tabletop RPG character sheet, roll dice, track roll history, import and export character data, and review imported fields before applying them to the character.
+
+Current features include:
+
+- Character sheet layout
+- Ability checks, saving throws, skill checks, weapon rolls, spell rolls, and manual dice rolls
+- Sticky Roll Center that stays visible while scrolling
+- Roll history
 - JSON import/export
 - PDF text extraction
 - Image OCR import
 - Human-in-the-loop import review
-- Named import agents
-- Character sheet ontology
-- Ontology-based validation and confidence scoring
 
-## Semantic Import Pipeline
+### Why This Matters
 
-The import system is being refactored into a semantic agent pipeline.
+Character sheets are semi-structured documents. They contain important data, but the layout can vary across systems, PDFs, screenshots, scans, and handwritten sheets.
 
-Current agents include:
+This makes them a useful sandbox for learning how to work with messy real-world documents.
 
-- Text Normalization Agent
-- Template Noise Agent
-- Ruleset Detection Agent
-- Identity Extraction Agent
-- Core Numbers Agent
-- Ability Score Agent
-- Spellcasting Ability Agent
-- Skill Detection Agent
-- Saving Throw Detection Agent
-- Weapon Detection Agent
-- Ontology Validation Agent
-- Character Patch Composer Agent
+The project connects several concepts:
 
-These are currently TypeScript agents, not LLM agents. They run in sequence, share context, produce candidate fields, assign confidence, and send uncertain values to a human review step.
-
-## Why This Project Exists
-
-This project is a practical learning sandbox for:
-
+- Frontend application development
+- TypeScript data modeling
+- OCR cleanup
+- PDF text extraction
+- Structured JSON output
+- Human review workflows
 - Semantic data layers
-- Ontology design
-- Agent orchestration
-- Human-in-the-loop workflows
-- Document parsing
-- AI-assisted structured data extraction
+- Agent-style parsing pipelines
 
-The goal is to turn messy character sheet documents into structured character data that a user can review and trust.
+### Technical Approach
+
+The import workflow is designed as a staged pipeline:
+
+1. Extract text from a PDF or image
+2. Normalize the text
+3. Detect likely character fields
+4. Create a structured character update
+5. Present uncertain fields to the user for review
+6. Apply approved data to the character sheet
+
+The current parsing system is written in TypeScript. It is not a full AI agent yet, but it is structured like an agent workflow: each stage has a specific job, shares context, and produces data for the next step.
+
+### What I Learned
+
+This project helped me practice:
+
+- Building a React and TypeScript app from scratch
+- Designing reusable UI sections
+- Managing application state
+- Modeling character data with typed objects
+- Parsing imported document text
+- Creating a review step before applying automated changes
+- Deploying a project publicly with Vercel
+- Writing about technical progress in public
+
+### Next Improvements
+
+Planned improvements include:
+
+- Adding screenshots and a short demo video
+- Improving the import review experience
+- Adding a real AI-assisted parsing step
+- Creating a clearer semantic model for character sheet fields
+- Improving support for different RPG systems
+- Adding better validation and confidence scoring
