@@ -26,8 +26,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.mjs?url";
 import { recognize } from "tesseract.js";
 import SheetImportReview from "./SheetImportReview";
-import { parseSheetText, type CharacterPatch, type SheetParseResult } from "./sheetParser";
-
+import { parseSheetText, type CharacterPatch, type ParsedSheetRow, type SheetParseResult } from "./sheetParser";
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 type AbilityKey = "strength" | "dexterity" | "constitution" | "intelligence" | "wisdom" | "charisma";
@@ -907,21 +906,106 @@ export default function TabletopCharacterRollerApp() {
       warnings: [],
     });
   }
+  type AiImportField = {
+  label: string;
+  value: string | number | boolean;
+  confidence: number;
+  reason: string;
+};
 
-  async function applyParsedText(fileName: string, kind: "pdf" | "image", text: string, pagesRead?: number) {
-    const parsed = parseSheetText(text);
+async function testAiImportEndpoint(text: string) {
+  const response = await fetch("/api/parse-character", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text }),
+  });
 
-    setPendingImport(parsed);
+  const data = await response.json().catch(() => null);
 
-    setImportReport({
-      fileName,
-      kind,
-      fieldsFound: parsed.rows.map((row) => row.label),
-      warnings: parsed.warnings,
-      pagesRead,
-      extractedText: parsed.normalizedText.slice(0, 1200),
-    });
+  if (!response.ok) {
+    const message =
+      data && typeof data === "object" && "details" in data
+        ? String(data.details)
+        : data && typeof data === "object" && "error" in data
+          ? String(data.error)
+          : `AI import endpoint failed with status ${response.status}`;
+
+    throw new Error(message);
   }
+
+  return data as {
+    fields: AiImportField[];
+    warnings: string[];
+    receivedCharacters: number;
+    usedCharacters?: number;
+  };
+}
+  async function applyParsedText(fileName: string, kind: "pdf" | "image", text: string, pagesRead?: number) {
+  const parsed = parseSheetText(text);
+
+  let aiFields: AiImportField[] = [];
+  let aiWarnings: string[] = [];
+
+  try {
+    const aiResult = await testAiImportEndpoint(text);
+
+    aiFields = Array.isArray(aiResult.fields) ? aiResult.fields : [];
+
+    aiWarnings = [
+      `AI endpoint connected. Received ${aiResult.receivedCharacters} characters.`,
+      ...(aiResult.usedCharacters ? [`AI analyzed ${aiResult.usedCharacters} characters.`] : []),
+      ...(aiResult.warnings ?? []),
+    ];
+  } catch (error) {
+  const message = error instanceof Error ? error.message : "Unknown error";
+
+  if (message.includes("429") || message.toLowerCase().includes("quota")) {
+    aiWarnings = [
+      "AI-assisted import is currently unavailable because the OpenAI test account has reached its quota.",
+      "Local TypeScript parsing still completed, and you can review any fields found below.",
+    ];
+  } else if (message.toLowerCase().includes("missing openai_api_key")) {
+    aiWarnings = [
+      "AI-assisted import is not configured yet. Missing OPENAI_API_KEY.",
+      "Local TypeScript parsing still completed, and you can review any fields found below.",
+    ];
+  } else {
+    aiWarnings = [
+      `AI-assisted import failed: ${message}`,
+      "Local TypeScript parsing still completed, and you can review any fields found below.",
+    ];
+  }
+}
+
+  const aiRows: ParsedSheetRow[] = aiFields.map((field, index) => ({
+  id: `ai-${Date.now()}-${index}`,
+  section: "core" as ParsedSheetRow["section"],
+  label: field.label,
+  value: field.value,
+  confidence: field.confidence,
+  sourceText: `AI Assisted Import: ${field.reason}`,
+  applied: field.confidence >= 0.7,
+}));
+
+  const mergedParsed = {
+    ...parsed,
+    rows: [...aiRows, ...parsed.rows],
+    warnings: [...parsed.warnings, ...aiWarnings],
+  };
+
+  setPendingImport(mergedParsed);
+
+  setImportReport({
+    fileName,
+    kind,
+    fieldsFound: mergedParsed.rows.map((row) => row.label),
+    warnings: mergedParsed.warnings,
+    pagesRead,
+    extractedText: parsed.normalizedText.slice(0, 1200),
+  });
+}
 
   function applyReviewedImport(patch: CharacterPatch) {
     setCharacter((current) => {
