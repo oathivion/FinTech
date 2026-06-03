@@ -332,49 +332,158 @@ export default function SheetImportReview({ result, onApply, onCancel }: SheetIm
 }
 
 function buildPatchFromSelectedRows(rows: ParsedSheetRow[], originalPatch: CharacterPatch): CharacterPatch {
-  const selectedLabels = new Set(rows.map((row) => row.label));
   const patch: CharacterPatch = {};
 
-  if (selectedLabels.has("Ruleset") && originalPatch.ruleset) patch.ruleset = originalPatch.ruleset;
-  if (selectedLabels.has("Character Name") && originalPatch.name) patch.name = originalPatch.name;
-  if (selectedLabels.has("Class") && originalPatch.className) patch.className = originalPatch.className;
-  if (selectedLabels.has("Background") && originalPatch.background) patch.background = originalPatch.background;
-  if (selectedLabels.has("Species") && originalPatch.species) patch.species = originalPatch.species;
-  if (selectedLabels.has("Ancestry") && originalPatch.species) patch.species = originalPatch.species;
-  if (selectedLabels.has("Level") && originalPatch.level !== undefined) patch.level = originalPatch.level;
-  if (selectedLabels.has("Armor Class") && originalPatch.armorClass !== undefined) patch.armorClass = originalPatch.armorClass;
-  if (selectedLabels.has("Speed") && originalPatch.speed !== undefined) patch.speed = originalPatch.speed;
-
-  if (selectedLabels.has("Maximum HP") && originalPatch.maxHp !== undefined) {
-    patch.maxHp = originalPatch.maxHp;
-    patch.currentHp = originalPatch.currentHp ?? originalPatch.maxHp;
+  function asNumber(value: ParsedSheetRow["value"]) {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : undefined;
   }
 
-  if (selectedLabels.has("Current HP") && originalPatch.currentHp !== undefined) {
-    patch.currentHp = originalPatch.currentHp;
+  function asText(value: ParsedSheetRow["value"]) {
+    return String(value).trim();
   }
 
-  if (selectedLabels.has("Proficiency Bonus") && originalPatch.proficiencyBonus !== undefined) {
-    patch.proficiencyBonus = originalPatch.proficiencyBonus;
+  function asSpellcastingAbility(value: ParsedSheetRow["value"]): CharacterPatch["spellcastingAbility"] | undefined {
+    const normalized = String(value).trim().toLowerCase();
+
+    if (["strength", "str"].includes(normalized)) return "strength";
+    if (["dexterity", "dex"].includes(normalized)) return "dexterity";
+    if (["constitution", "con"].includes(normalized)) return "constitution";
+    if (["intelligence", "int"].includes(normalized)) return "intelligence";
+    if (["wisdom", "wis"].includes(normalized)) return "wisdom";
+    if (["charisma", "cha"].includes(normalized)) return "charisma";
+
+    return undefined;
   }
 
-  if (selectedLabels.has("Spellcasting Ability") && originalPatch.spellcastingAbility) {
-    patch.spellcastingAbility = originalPatch.spellcastingAbility;
+  function asRuleset(value: ParsedSheetRow["value"]): CharacterPatch["ruleset"] {
+    const normalized = String(value).trim().toLowerCase();
+
+    if (normalized.includes("pathfinder") || normalized.includes("pf2")) {
+      return "pf2eRemaster";
+    }
+
+    return "dnd5e2024";
   }
 
-  const abilityLabels = ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"];
+  for (const row of rows) {
+    switch (row.label) {
+      case "Ruleset":
+        patch.ruleset = originalPatch.ruleset ?? asRuleset(row.value);
+        break;
 
-  for (const label of abilityLabels) {
-    if (!selectedLabels.has(label)) continue;
+      case "Character Name":
+        patch.name = originalPatch.name ?? asText(row.value);
+        break;
 
-    const abilityKey = label.toLowerCase() as keyof NonNullable<CharacterPatch["abilities"]>;
-    const abilityValue = originalPatch.abilities?.[abilityKey];
+      case "Class":
+        patch.className = originalPatch.className ?? asText(row.value);
+        break;
 
-    if (abilityValue !== undefined) {
-      patch.abilities = {
-        ...patch.abilities,
-        [abilityKey]: abilityValue,
-      };
+      case "Background":
+        patch.background = originalPatch.background ?? asText(row.value);
+        break;
+
+      case "Species":
+      case "Ancestry":
+        patch.species = originalPatch.species ?? asText(row.value);
+        break;
+
+      case "Level": {
+        const value = originalPatch.level ?? asNumber(row.value);
+        if (value !== undefined) patch.level = value;
+        break;
+      }
+
+      case "Armor Class": {
+        const value = originalPatch.armorClass ?? asNumber(row.value);
+        if (value !== undefined) patch.armorClass = value;
+        break;
+      }
+
+      case "Speed": {
+        const value = originalPatch.speed ?? asNumber(row.value);
+        if (value !== undefined) patch.speed = value;
+        break;
+      }
+
+      case "Maximum HP": {
+        const value = originalPatch.maxHp ?? asNumber(row.value);
+        if (value !== undefined) {
+          patch.maxHp = value;
+          patch.currentHp = originalPatch.currentHp ?? patch.currentHp ?? value;
+        }
+        break;
+      }
+
+      case "Current HP": {
+        const value = originalPatch.currentHp ?? asNumber(row.value);
+        if (value !== undefined) patch.currentHp = value;
+        break;
+      }
+
+      case "Proficiency Bonus": {
+        const value = originalPatch.proficiencyBonus ?? asNumber(row.value);
+        if (value !== undefined) patch.proficiencyBonus = value;
+        break;
+      }
+
+      case "Spellcasting Ability": {
+        const value = originalPatch.spellcastingAbility ?? asSpellcastingAbility(row.value);
+        if (value) patch.spellcastingAbility = value;
+        break;
+      }
+
+      case "Strength": {
+        const value = originalPatch.abilities?.strength ?? asNumber(row.value);
+        if (value !== undefined) {
+          patch.abilities = { ...patch.abilities, strength: value };
+        }
+        break;
+      }
+
+      case "Dexterity": {
+        const value = originalPatch.abilities?.dexterity ?? asNumber(row.value);
+        if (value !== undefined) {
+          patch.abilities = { ...patch.abilities, dexterity: value };
+        }
+        break;
+      }
+
+      case "Constitution": {
+        const value = originalPatch.abilities?.constitution ?? asNumber(row.value);
+        if (value !== undefined) {
+          patch.abilities = { ...patch.abilities, constitution: value };
+        }
+        break;
+      }
+
+      case "Intelligence": {
+        const value = originalPatch.abilities?.intelligence ?? asNumber(row.value);
+        if (value !== undefined) {
+          patch.abilities = { ...patch.abilities, intelligence: value };
+        }
+        break;
+      }
+
+      case "Wisdom": {
+        const value = originalPatch.abilities?.wisdom ?? asNumber(row.value);
+        if (value !== undefined) {
+          patch.abilities = { ...patch.abilities, wisdom: value };
+        }
+        break;
+      }
+
+      case "Charisma": {
+        const value = originalPatch.abilities?.charisma ?? asNumber(row.value);
+        if (value !== undefined) {
+          patch.abilities = { ...patch.abilities, charisma: value };
+        }
+        break;
+      }
+
+      default:
+        break;
     }
   }
 

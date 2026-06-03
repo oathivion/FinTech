@@ -582,6 +582,7 @@ export default function TabletopCharacterRollerApp() {
   const [pendingImport, setPendingImport] = useState<SheetParseResult | null>(null);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
+  const [aiImportStatus, setAiImportStatus] = useState<"idle" | "available" | "unavailable">("idle");
 
   const jsonInputRef = useRef<HTMLInputElement | null>(null);
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
@@ -942,6 +943,78 @@ async function testAiImportEndpoint(text: string) {
     usedCharacters?: number;
   };
 }
+  function isSupportedAiFieldLabel(label: string) {
+  return [
+    "Ruleset",
+    "Character Name",
+    "Class",
+    "Background",
+    "Species",
+    "Level",
+    "Armor Class",
+    "Speed",
+    "Maximum HP",
+    "Current HP",
+    "Proficiency Bonus",
+    "Spellcasting Ability",
+    "Strength",
+    "Dexterity",
+    "Constitution",
+    "Intelligence",
+    "Wisdom",
+    "Charisma",
+  ].includes(label);
+}
+
+function validateAiImportField(field: AiImportField) {
+  const warnings: string[] = [];
+
+  if (!isSupportedAiFieldLabel(field.label)) {
+    warnings.push(`AI ignored unsupported field: ${field.label}`);
+    return { valid: false, warnings };
+  }
+
+  if (typeof field.confidence !== "number" || field.confidence < 0 || field.confidence > 1) {
+    warnings.push(`AI ignored ${field.label}: confidence was outside 0–1.`);
+    return { valid: false, warnings };
+  }
+
+  const numericFields = [
+    "Level",
+    "Armor Class",
+    "Speed",
+    "Maximum HP",
+    "Current HP",
+    "Proficiency Bonus",
+    "Strength",
+    "Dexterity",
+    "Constitution",
+    "Intelligence",
+    "Wisdom",
+    "Charisma",
+  ];
+
+  if (numericFields.includes(field.label) && typeof field.value !== "number") {
+    warnings.push(`AI ignored ${field.label}: expected a number.`);
+    return { valid: false, warnings };
+  }
+
+  if (
+    ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"].includes(field.label) &&
+    typeof field.value === "number" &&
+    (field.value < 1 || field.value > 30)
+  ) {
+    warnings.push(`AI ignored ${field.label}: ability score was outside 1–30.`);
+    return { valid: false, warnings };
+  }
+
+  if (field.label === "Level" && typeof field.value === "number" && (field.value < 1 || field.value > 20)) {
+    warnings.push("AI ignored Level: value was outside 1–20.");
+    return { valid: false, warnings };
+  }
+
+  return { valid: true, warnings };
+}
   async function applyParsedText(fileName: string, kind: "pdf" | "image", text: string, pagesRead?: number) {
   const parsed = parseSheetText(text);
 
@@ -950,6 +1023,9 @@ async function testAiImportEndpoint(text: string) {
 
   try {
     const aiResult = await testAiImportEndpoint(text);
+    
+
+    setAiImportStatus("available");
 
     aiFields = Array.isArray(aiResult.fields) ? aiResult.fields : [];
 
@@ -959,6 +1035,8 @@ async function testAiImportEndpoint(text: string) {
       ...(aiResult.warnings ?? []),
     ];
   } catch (error) {
+    
+  setAiImportStatus("unavailable");
   const message = error instanceof Error ? error.message : "Unknown error";
 
   if (message.includes("429") || message.toLowerCase().includes("quota")) {
@@ -979,7 +1057,15 @@ async function testAiImportEndpoint(text: string) {
   }
 }
 
-  const aiRows: ParsedSheetRow[] = aiFields.map((field, index) => ({
+  const validationWarnings: string[] = [];
+
+const validatedAiFields = aiFields.filter((field) => {
+  const result = validateAiImportField(field);
+  validationWarnings.push(...result.warnings);
+  return result.valid;
+});
+
+const aiRows: ParsedSheetRow[] = validatedAiFields.map((field, index) => ({
   id: `ai-${Date.now()}-${index}`,
   section: "core" as ParsedSheetRow["section"],
   label: field.label,
@@ -992,7 +1078,7 @@ async function testAiImportEndpoint(text: string) {
   const mergedParsed = {
     ...parsed,
     rows: [...aiRows, ...parsed.rows],
-    warnings: [...parsed.warnings, ...aiWarnings],
+    warnings: [...parsed.warnings, ...aiWarnings, ...validationWarnings],
   };
 
   setPendingImport(mergedParsed);
@@ -1392,6 +1478,28 @@ async function testAiImportEndpoint(text: string) {
 
                 <SheetCard>
                   <SectionTitle icon={FileText} title="Import / Export" subtitle="JSON, PDF text, and image OCR" />
+                  <div className="mb-3 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wide">
+                  <span className="border border-stone-400 bg-white px-2 py-1 text-stone-600">
+                    Local parser: ready
+                  </span>
+
+                  <span
+                    className={`border px-2 py-1 ${
+                      aiImportStatus === "available"
+                        ? "border-emerald-950 bg-emerald-950 text-white"
+                        : aiImportStatus === "unavailable"
+                          ? "border-amber-700 bg-amber-100 text-amber-900"
+                          : "border-stone-400 bg-white text-stone-600"
+                    }`}
+                  >
+                    AI import:{" "}
+                    {aiImportStatus === "available"
+                      ? "available"
+                      : aiImportStatus === "unavailable"
+                        ? "unavailable"
+                        : "not tested"}
+                  </span>
+                </div>
 
                   <input
                     ref={jsonInputRef}
